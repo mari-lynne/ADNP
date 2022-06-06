@@ -1,0 +1,128 @@
+---
+title: "ADNP Script"
+author: "Mari Johnson"
+date: "06/01/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = TRUE)
+knitr::opts_chunk$set(include = TRUE)
+knitr::opts_chunk$set(warning = TRUE)
+
+```
+
+# Data Set Up
+
+### Load Packages
+
+```{r load, results='hide', message=F, warning=F}
+
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(ggpubr)
+library(drc)
+library(RColorBrewer)
+library(ggforce)
+library(reshape2)
+
+```
+
+### Read in data
+```{r read data}
+
+setwd("C:/Users/Mari/Documents/R_laptop/2.11.20_TyVac_VAST_repeat")
+phago_data <- read.csv("exp_new.csv", fileEncoding="UTF-8-BOM")
+
+```
+
+```{r Str, eval=TRUE}
+
+str(phago_data)
+
+```
+
+### Recode variables
+
+```{r recode}
+#factor variables are good for categorising groups, useful for subsequent plotting 
+phago_data$Rep <-as.factor(phago_data$Rep)
+phago_data$Plate <-as.factor(phago_data$Plate)
+phago_data$Visit <- as.factor(phago_data$Visit)
+
+phago_data$Sample_ID <- as.character(phago_data$Sample_ID)
+phago_data$Well_ID <- as.character(phago_data$Well_ID)
+
+```
+
+# Data Analysis
+### ADNP 
+
+```{r Data analysis}
+
+#divide phago Score by 100
+phago_data$Phago_Score <- (phago_data$Phago_Score/100)
+      
+#compare duplicates, mean, sd and se
+      
+ phago_data <- phago_data %>% group_by(Sample_ID, Visit, Plate) %>% dplyr::mutate(mean_phago = mean(Phago_Score), sd = sd(Phago_Score), se = sd(Phago_Score) / sqrt(length(Phago_Score)))
+      
+#Add percent CV column
+phago_data<- phago_data %>% group_by(Sample_ID, Visit, Plate) %>% mutate(Percent_CV = sd/mean_phago * 100)
+      
+      
+#Filter for sampes with high %CV
+phago_data_CVhigh <- filter(phago_data, Percent_CV > 25)
+head(phago_data_CVhigh)
+
+```
+
+### Oxidative Burst
+``` {r Oxidative Burst Analysis}
+
+#same as above
+phago_data <- phago_data %>% group_by(Sample_ID, Plate, Visit) %>% dplyr::mutate(mean_DHR = mean(DHR), sd = sd(DHR), se = sd(DHR) / sqrt(length(DHR)))
+      
+#add percent CV column
+phago_data<- phago_data %>% group_by(Sample_ID, Visit) %>% mutate(OB_Percent_CV = sd/mean_DHR * 100)
+      
+      
+#data table with high %CV
+DHR_CVhigh <- filter(phago_data, OB_Percent_CV > 25)
+
+```
+
+# Data Visualisation
+
+### Standard Curve Check
+``` {r Plotting}
+
+#First thing you can check is the serum standard, select serum standard data by it's character name in this case "ss"
+
+phago_data_ss <-filter(phago_data, Sample_ID == 'SS')
+
+phago_data_pp <-filter(phago_data,Sample_ID == 'PP')
+
+#Use package DRC to fit 4PLR curve to data
+#input dilutions (if using same dilutions regulary can save as a vector)
+
+ss_curve <-data.frame(Dilution=rep(c(0.025,
+                                     0.0125,
+                                     0.00625,
+                                     0.003125,
+                                     0.0015625,
+                                     0.00078125)), Phagocytic_Score=c(phago_data_pp$mean_phago))
+
+model1<-drm(Phagocytic_Score~Dilution,
+            fct=LL.4(names=c("Slope", "Lower", "Upper", "ED50")),
+            data=ss_curve)
+plot(model1)
+
+
+
+model1<-drm(Phagocytic_Score~Dilution,
+            fct=LL.4(names=c("Slope", "Lower", "Upper", "ED50")),
+            data=ss_curve)
+plot(model1)
