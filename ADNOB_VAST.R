@@ -11,6 +11,8 @@ library(RColorBrewer)
 library(patchwork)
 library(forcats)
 library(ggtext)
+library(ggprism)
+library(rstatix)
 
 #Load data with Rstudio import from onedrive/documents/ADNOB_VAST.xlsx // ADNOB_ragon_NS.csv
 #setwd("C:/Users/mjohnson/Documents/useful graphs/ADNP_OB")
@@ -39,7 +41,7 @@ options(scipen = 999)
 AD28 <- AD %>%
   filter(Time == "28")
 
-AD28$FC <- 
+AD28$FC <-
   round(AD28$FC, digits = 3)
 
 # Plot fold change and ADNOB ---------------------------------------------------
@@ -65,7 +67,7 @@ AD %>%
   geom_jitter() +
   scale_fill_manual(values = c("seagreen3", "sandybrown")) +
   labs(y = "ADNOB MFI") +
-  facet_grid( ~ Vaccine) + theme_bw()
+  facet_grid(~ Vaccine) + theme_bw()
 
 # Wilcoxon tests ---------------------------------------------------------------
 
@@ -80,11 +82,8 @@ w_test # p = 0.0141 *
 # Test Vi-PS and Vi-TCV stat differences separately 
 # Make time point_vax factor
 
-AD <-
-  AD %>% mutate(Vax_Time = as.factor(str_c(Vaccine, Time, sep = "_")))
-
+AD <- AD %>% mutate(Vax_Time = as.factor(str_c(Vaccine, Time, sep = "_")))
 AD_rm <- na.omit(AD) # Removes samples with missing obvs for the w.test
-
 AD_PS <- filter(AD_rm, Vaccine == "Vi-PS")
 AD_TCV <- filter(AD_rm, Vaccine == "Vi-TCV")
 
@@ -154,12 +153,18 @@ levels(AD28$Time) <- c("Pre-Vac", "Post-Vac")
  my_comparisons <- list(c("Pre-Vac", "Post-Vac"))
  
  #4195 x 5953
- tiff(file = "ADNOB_vax.tiff",
-      res = 720,
-      width = 4300, height = 4000,
-      compression = "lzw")
+ tiff(
+   file = "ADNOB_vax.tiff",
+   res = 720,
+   width = 4300,
+   height = 4000,
+   compression = "lzw"
+ )
  AD %>% ggplot(aes(Time, NS)) +
-   geom_boxplot(fill = c("#4045D5", "#40a9d5", "#4045D5", "#40a9d5"), outlier.shape = NA) +
+   geom_boxplot(
+     fill = c("#4045D5", "#40a9d5", "#4045D5", "#40a9d5"),
+     outlier.shape = NA
+   ) +
    geom_jitter(width = 0.25, alpha = 0.9) +
    facet_wrap ("Vaccine") +
    labs(x = "Visit", y = "\n Oxidative Burst Score\n") +
@@ -169,21 +174,19 @@ levels(AD28$Time) <- c("Pre-Vac", "Post-Vac")
      method = "wilcox.test",
      paired = TRUE
    )  + theme_pubr(border = TRUE) +
-   theme(panel.grid.major = element_line(linetype = "dashed", color = "lightgrey"), axis.title = element_text(face ="bold"))
+   theme(
+     panel.grid.major = element_line(linetype = "dashed", color = "lightgrey"),
+     axis.title = element_text(face = "bold")
+   )
  dev.off()
  
-
-
  # geom_line(aes(group = Lab_ID))
  # Line plot some samples go down post-vac, technical - could be background in NS control (was a corner well rip)
  # So they probably don't do anything, or could be a biological thing
  
-
+# Diagnosis ~ FC ----------------------------------------------------
  
- 
- 
- 
- b <- AD28 %>%
+ AD28 %>%
   ggboxplot(
     x = "Diagnosis",
     y = "FC",
@@ -214,9 +217,6 @@ levels(AD28$Time) <- c("Pre-Vac", "Post-Vac")
   ) +
   geom_hline(yintercept = 30, colour = "black") +
   theme(axis.title = element_text(face = "bold"))
-
-(a | b) + plot_annotation(tag_levels = "a")
-
 
 
 # Manual P-val adding -----------------------------------------------------
@@ -268,7 +268,7 @@ tcv.test.fc <-
 # Round all test values
 names(.GlobalEnv)
 Pattern1 <- grep("\\.test", names(.GlobalEnv), value = TRUE)
-Pattern1_list <- do.call("list", mget(Pattern1))
+Pattern1_list <- do.call("list", mget(Pattern1)) # test is numeric first
 
 # Write over and modify all p vals in list
 for (i in seq_along(Pattern1_list)) {
@@ -285,26 +285,120 @@ df_p_val <- data.frame(
   y.position = 6 # set as nul
 )
 
+fc.test <- signif(fc.test, digits = 3)
 
-AD28 %>%
+
+
+# Diagnosis ~ FC with Pval ------------------------------------------------------
+
+AD28 <-
+  AD28 %>% mutate(Diagnosis = fct_relevel(Diagnosis, "TD", "nTD"))
+
+p <-
+  AD28 %>%
   ggboxplot(
     x = "Diagnosis",
     y = "FC",
     fill = "Diagnosis",
     palette = c("sandybrown", "seagreen3"),
     outlier.shape = NA,
-    ylab = "\nADNOB (Fold Change)\n",
+    ylab = "\n\nADNOB (Fold Change)\n",
     group = "Diagnosis",
     error.plot = "linerange"
   ) +
-  ylim(-30, 50) +
-  add_pvalue(
+  ylim(-30, 30) + theme_pubr(border = TRUE) +
+  theme(panel.grid.major = element_line(linetype = "dashed", color = "lightgrey"),
+        axis.title = element_text(face ="bold"), legend.position = "right") + ggtitle("\n")
+
+p
+
+# Set up pval df
+
+p_val <- data.frame(
+  group1 = "nTD",
+  group2 = "TD",
+  label = c("*"), # test name fc.test
+  y.pos = 27 
+)
+
+p + add_pvalue(
     p_val,
     xmin = "group1",
     xmax = "group2",
     label = "label",
-    y.position = 45,
-    tip.length = 2,
-  ) 
+    y.position = "y.pos",
+    bracket.size = 0.5,
+    tip.length = 0.15,
+  ) #Tips not adding :(
+
+fc.test <-
+  wilcox.test(FC ~ Diagnosis,
+              data = AD28,
+              alternative = "two.sided") #$p.value
+
+stat.test <-
+  data.frame(
+    `.y.` = "FC",
+    group1 = "nTD",
+    group2 = "TD",
+    n1 = "46",
+    n2 = "26",
+    statistic = "646",
+    p = "0.0141",
+    p.signif = "*"
+  )
+
+stat.test <- stat.test %>%
+  add_x_position(x = "Study", dodge = 0.8) %>% mutate(y.position = 27)
+
+p +
+  stat_pvalue_manual(
+    stat.test,
+    label = "p.signif",
+    tip.length = 0.001,
+    size = 6.5,
+    braket.size = 6
+  )
 
 
+
+
+# Plot arranging ---------------------------------------------------------------
+a <-  AD %>% ggplot(aes(Time, NS)) +
+  geom_boxplot(
+    fill = c("#4045D5", "#40a9d5", "#4045D5", "#40a9d5"),
+    outlier.shape = NA
+  ) +
+  geom_jitter(width = 0.25, alpha = 0.9, size =1.1) +
+  facet_wrap ("Vaccine") +
+  labs(x = "Visit", y = "Oxidative Burst Score\n") +
+  stat_compare_means(
+    comparisons = my_comparisons,
+    label = "p.signif",
+    method = "wilcox.test",
+    paired = TRUE
+  )  + theme_pubr(border = TRUE) +
+  theme(
+    panel.grid.major = element_line(linetype = "dashed", color = "lightgrey"),
+    axis.title = element_text(face = "bold")
+  )
+a
+
+b <- p +
+  stat_pvalue_manual(
+    stat.test,
+    label = "p.signif",
+    tip.length = 0.001,
+    size = 6.5,
+    braket.size = 6
+  )
+
+
+tiff(
+  file = "ADNOB_vax_TD.tiff",
+  res = 720,
+  width = 8250,
+  height = 3800,
+  compression = "lzw")
+(a | b) + plot_annotation(tag_levels = "a")
+dev.off()
