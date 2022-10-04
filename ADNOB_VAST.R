@@ -113,7 +113,7 @@ vax.test <-
               paired = FALSE)
 
 # FC = NS
-vax.test = p-value = 0.04263
+# vax.test = p-value = 0.04263
 
 # Plot ADNOB ----------------------------------------------------------
 
@@ -146,6 +146,8 @@ levels(AD28$Time) <- c("Pre-Vac", "Post-Vac")
 # error.plot = "pointrange", double check what this iswidth = 0.25
 
 # ggplot version with stat compare means
+ 
+ 
  
  # Visit ~ ADNOB ~ Vaccine -----------------
  
@@ -183,6 +185,8 @@ levels(AD28$Time) <- c("Pre-Vac", "Post-Vac")
  # geom_line(aes(group = Lab_ID))
  # Line plot some samples go down post-vac, technical - could be background in NS control (was a corner well rip)
  # So they probably don't do anything, or could be a biological thing
+ 
+ load(file = "ADNP_vast.RData")
  
 # Diagnosis ~ FC ----------------------------------------------------
  
@@ -266,24 +270,24 @@ tcv.test.fc <-
 
 
 # Round all test values
-names(.GlobalEnv)
-Pattern1 <- grep("\\.test", names(.GlobalEnv), value = TRUE)
-Pattern1_list <- do.call("list", mget(Pattern1)) # test is numeric first
+# names(.GlobalEnv)
+# Pattern1 <- grep("\\.test", names(.GlobalEnv), value = TRUE)
+# Pattern1_list <- do.call("list", mget(Pattern1)) # test is numeric first
 
 # Write over and modify all p vals in list
-for (i in seq_along(Pattern1_list)) {
-  Pattern1_list[[i]] <- signif(Pattern1_list[[i]], digits = 3)
-}
+#for (i in seq_along(Pattern1_list)) {
+#   Pattern1_list[[i]] <- signif(Pattern1_list[[i]], digits = 3)
+# }
 
-p_vals <- as.data.frame(Pattern1_list)
-# To do: add if else to add asterix
-
-df_p_val <- data.frame(
-  group1 = "1", #name of x var
-  group2 = "2", #name of y var
-  label = result,# test name
-  y.position = 6 # set as nul
-)
+# p_vals <- as.data.frame(Pattern1_list)
+# # To do: add if else to add asterix
+# 
+# df_p_val <- data.frame(
+#   group1 = "1", #name of x var
+#   group2 = "2", #name of y var
+#   label = result,# test name
+#   y.position = 6 # set as nul
+# )
 
 fc.test <- signif(fc.test, digits = 3)
 
@@ -294,42 +298,7 @@ fc.test <- signif(fc.test, digits = 3)
 AD28 <-
   AD28 %>% mutate(Diagnosis = fct_relevel(Diagnosis, "TD", "nTD"))
 
-p <-
-  AD28 %>%
-  ggboxplot(
-    x = "Diagnosis",
-    y = "FC",
-    fill = "Diagnosis",
-    palette = c("sandybrown", "seagreen3"),
-    outlier.shape = NA,
-    ylab = "\n\nADNOB (Fold Change)\n",
-    group = "Diagnosis",
-    error.plot = "linerange"
-  ) +
-  ylim(-30, 30) + theme_pubr(border = TRUE) +
-  theme(panel.grid.major = element_line(linetype = "dashed", color = "lightgrey"),
-        axis.title = element_text(face ="bold"), legend.position = "right") + ggtitle("\n")
-
-p
-
-# Set up pval df
-
-p_val <- data.frame(
-  group1 = "nTD",
-  group2 = "TD",
-  label = c("*"), # test name fc.test
-  y.pos = 27 
-)
-
-p + add_pvalue(
-    p_val,
-    xmin = "group1",
-    xmax = "group2",
-    label = "label",
-    y.position = "y.pos",
-    bracket.size = 0.5,
-    tip.length = 0.15,
-  ) #Tips not adding :(
+# Set up manual p vals
 
 fc.test <-
   wilcox.test(FC ~ Diagnosis,
@@ -350,6 +319,51 @@ stat.test <-
 
 stat.test <- stat.test %>%
   add_x_position(x = "Study", dodge = 0.8) %>% mutate(y.position = 27)
+
+
+  AD28 %>%
+  ggboxplot(
+    x = "Diagnosis",
+    y = "FC",
+    fill = "Diagnosis",
+    palette = c("sandybrown", "seagreen3"),
+    outlier.shape = NA,
+    ylab = "\n\nADNOB (Fold Change)\n",
+    group = "Diagnosis",
+    error.plot = "linerange"
+  ) +
+  ylim(-30, 30) + theme_pubr(border = TRUE) +
+  theme(panel.grid.major = element_line(linetype = "dashed", color = "lightgrey"),
+        axis.title = element_text(face ="bold"), legend.position = "right") + ggtitle("\n") +
+  stat_pvalue_manual(
+    stat.test,
+    label = "p.signif",
+    tip.length = 0.001,
+    size = 6.5,
+    braket.size = 6
+  )
+
+
+
+# Set up pval df
+
+p_val <- data.frame(
+  group1 = "nTD",
+  group2 = "TD",
+  label = c("*"), # test name fc.test
+  y.pos = 27 
+)
+
+p + add_pvalue(
+    p_val,
+    xmin = "group1",
+    xmax = "group2",
+    label = "label",
+    y.position = "y.pos",
+    bracket.size = 0.5,
+    tip.length = 0.15,
+  ) #Tips not adding :(
+
 
 p +
   stat_pvalue_manual(
@@ -393,6 +407,9 @@ b <- p +
     braket.size = 6
   )
 
+save.image(file = "VAST_adnob.RData")
+
+(a | b) + plot_annotation(tag_levels = "a")
 
 tiff(
   file = "ADNOB_vax_TD.tiff",

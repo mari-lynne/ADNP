@@ -1,3 +1,6 @@
+setwd("~/ADNP/VAST_data")
+
+
 # Study Comparison ADNOB ---------------------------------------------------------
 
 phago_data <-
@@ -21,7 +24,7 @@ p <- phago_data %>% filter(Rep == "1",
   geom_boxplot(fill = c("#4045D5", "#40a9d5", "#4045D5", "#40a9d5")) +
   geom_point() +
   geom_line(aes(group = Sample_ID)) + facet_wrap ("Study") +
-  labs(x = "Visit", y = "\nOxidative Burst Score\n", title = "ADNOB\n") +
+  labs(x = "Visit", y = "\nOxidative Burst Score\n", title = "ADNOB") +
   stat_compare_means(
     comparisons = my_comparisons,
     label = "p.signif",
@@ -32,6 +35,10 @@ p <- phago_data %>% filter(Rep == "1",
     panel.grid.major = element_line(linetype = "dashed", color = "lightgrey"),
     axis.title = element_text(face = "bold")
   )
+
+p
+
+save.image(file = "ADNOB_studycomp.RData")
 
 tiff(
   file = "ADNOB_study_comp.tiff",
