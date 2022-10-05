@@ -1,5 +1,4 @@
-# Packages and themes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+# Packages and themes ----------------------------------------------------------
 
 library(dplyr)
 library(ggplot2)
@@ -22,7 +21,7 @@ white_cor <- theme(axis.text=element_text(size=12),
                    panel.grid.minor = element_line(size = 0.25, linetype = 'solid', colour = "grey88"))
 
 
-# Load data ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Load data --------------------------------------------------------------------
 setwd("~/ADNP/VAST_data")
 
 neut <- read.csv("neut_titres.csv")
@@ -39,7 +38,7 @@ join <- clean_names(join)
 # NM ratio with ADNOB
 # Neuts with time/bacteria quant
 
-# ADNP cors (loop) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ADNP cors (loop) -------------------------------------------------------------
 Y <- join$adnp
 
 # Get string of just names with fc functions 
@@ -89,7 +88,7 @@ b <- ggplot(join, aes(x=fcg_r3b_vi, y=adnp)) +
 
 b
 
-# ADNOB - FcR correlations (loop) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ADNOB - FcR correlations (loop) ----------------------------------------------
 
 colnames <- names(select_if(join, is.numeric))
 join$vaccine <- as.factor(join$vaccine_x)
@@ -152,7 +151,7 @@ ggsave(filename = "ADNP_OB_fcy_cors.tiff", device = "tiff", dpi = 720)
 #induced in Vi-TCV vaccination, but less so by Vi-PS
 #Diffs in vaccine compisition/presentation etc. 
 
-# FcyR binding cors ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# FcyR binding cors -----------------------------------------------------------
 
 fc3a <- join[((!is.na(join$fcg_r3a_vi))&(!is.na(join$adnob))),]
 fc3b <- join[((!is.na(join$fcg_r3b_vi))&(!is.na(join$adnob))),]
@@ -242,7 +241,7 @@ b2 <- ggplot(fc3b, aes(x=fcg_r3b_vi, y=adnob)) +
 ggsave(filename = "ADNOB_fcy_cor_nolog.tiff", device = "tiff", dpi = 720)
 
 
-# ADNOB ~ CFU and time to diagnosis ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ADNOB ~ CFU and time to diagnosis --------------------------------------------
 
 # ADNOB r- 0.68, p=0.05 (both, small n)
 
@@ -270,14 +269,13 @@ b <- cor2 %>%
   ylab("Bacterial CFU/ml\n")+
   white_cor
 
-# Furthermore, in those who were diagnosed with typhoid fever, higher oxidative burst scores following vaccination were associated with longer time to a positive blood culture, and lower bacterial load 
 
 (a|b) + plot_annotation(tag_levels = "a")
 ggsave(filename = "ADNOB_symptoms.tiff", device = "tiff", dpi = 720)
 
+save.image(file = "andob_cors.RData")
 
-
-#Neutrophil counts ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Neutrophil counts -------------------------------------------------------------
 
 ggplot(
   join,aes(y=time_to_positive_bc_hours, x = neutrophils_x10_9_l))+
@@ -322,7 +320,7 @@ ggplot(
 #nothing interesting/sig with ratios
 
 
-# Cytokines ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Cytokines -------------------------------------------------------------------
 cyt <- read.csv(file = "38plex.csv")
 cyt <- clean_names(cyt)
 cyt <- filter(cyt, vaccine != "Control")
@@ -569,8 +567,6 @@ chal2 <-
 
 
 #Double check ADNOB cors ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
 
 xvar = "gFC_D0"
 yvar = "adnob"
